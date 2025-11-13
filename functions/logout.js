@@ -1,7 +1,5 @@
-// /functions/logout.js
-export const onRequestGet = async (context) => {
+export const onRequestGet = async () => {
   const headers = new Headers({
-    // 期限切れでCookie削除
     'Set-Cookie': 'pin=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
     'Location': '/login',
   });

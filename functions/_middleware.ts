@@ -1,33 +1,30 @@
-// functions/_middleware.ts
-export const onRequest: PagesFunction = async ({ request, env, next }) => {
-  const url = new URL(request.url);
-  const authed = /pin_ok=1/.test(request.headers.get("Cookie") || "");
+// /functions/_middleware.js
+export const onRequest = async (context) => {
+  const url = new URL(context.request.url);
+  const path = url.pathname;
 
-  if (url.pathname === "/pin" && request.method === "POST") {
-    const form = await request.formData();
-    const pin = String(form.get("pin") || "");
-    if (pin && env.PIN_CODE && pin === env.PIN_CODE) {
-      // 成功時に電話帳へ
-      const res = new Response(null, { status: 302, headers: { Location: "/phonebook/" } });
-      res.headers.append("Set-Cookie", "pin_ok=1; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax");
-      return res;
-    }
-    return new Response(renderForm("PINが違います"), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  // ログイン/ログアウトや静的アセットは素通し
+  const passThrough =
+    path.startsWith('/login') ||
+    path.startsWith('/logout') ||
+    path.startsWith('/favicon') ||
+    path.startsWith('/assets') ||
+    // public直下の静的ファイル想定（.css/.js/.pngなど）
+    /\.(css|js|png|jpg|jpeg|gif|svg|ico|txt|map)$/i.test(path);
+
+  if (passThrough) {
+    return context.next();
   }
 
-  if (!authed) {
-    return new Response(renderForm(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  // Cookieのpinが正しければOK
+  const cookie = context.request.headers.get('Cookie') || '';
+  const pinCookie = cookie.split(';').map(v => v.trim()).find(v => v.startsWith('pin='));
+  const stored = pinCookie ? decodeURIComponent(pinCookie.split('=')[1]) : null;
+
+  if (stored && stored === context.env.SECRET_PIN) {
+    return context.next();
   }
-  return next();
+
+  // 未認証は /login へ
+  return Response.redirect(new URL('/login', url), 302);
 };
-
-function renderForm(message = "") {
-  return `<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>PIN ロック</title></head>
-<body style="font-family:sans-serif;max-width:520px;margin:40px auto">
-<h1>PIN入力</h1>${message ? `<p style="color:#c00">${message}</p>` : ""}
-<form method="POST" action="/pin">
-  <input type="password" name="pin" placeholder="PIN" autofocus style="padding:.6em;font-size:16px">
-  <button type="submit" style="padding:.6em 1em;font-size:16px">送信</button>
-</form></body></html>`;
-}

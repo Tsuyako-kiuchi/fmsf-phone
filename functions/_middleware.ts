@@ -1,5 +1,5 @@
-// functions/_middleware.js
-export const onRequest = async ({ request, env, next }) => {
+// functions/_middleware.ts
+export const onRequest: PagesFunction = async ({ request, env, next }) => {
   const url = new URL(request.url);
   const authed = /pin_ok=1/.test(request.headers.get("Cookie") || "");
 
@@ -7,7 +7,8 @@ export const onRequest = async ({ request, env, next }) => {
     const form = await request.formData();
     const pin = String(form.get("pin") || "");
     if (pin && env.PIN_CODE && pin === env.PIN_CODE) {
-      const res = new Response(null, { status: 302, headers: { Location: "/" } });
+      // 成功時に電話帳へ
+      const res = new Response(null, { status: 302, headers: { Location: "/phonebook/" } });
       res.headers.append("Set-Cookie", "pin_ok=1; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax");
       return res;
     }

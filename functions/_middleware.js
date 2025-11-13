@@ -1,3 +1,5 @@
+const normalizePin = (s) => String(s || '').normalize('NFKC').trim();
+
 export const onRequest = async (context) => {
   const url = new URL(context.request.url);
   const path = url.pathname;
@@ -15,7 +17,7 @@ export const onRequest = async (context) => {
   const pinCookie = cookie.split(';').map(v => v.trim()).find(v => v.startsWith('pin='));
   const stored = pinCookie ? decodeURIComponent(pinCookie.split('=')[1]) : null;
 
-  if (stored && stored === context.env.SECRET_PIN) {
+  if (normalizePin(stored) === normalizePin(context.env.SECRET_PIN)) {
     return context.next();
   }
 

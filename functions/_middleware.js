@@ -21,5 +21,5 @@ export const onRequest = async (context) => {
     return context.next();
   }
 
-  return Response.redirect(new URL('/login', url), 302);
+return Response.redirect(new URL('/login.html', request.url), 302);
 };
